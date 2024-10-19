@@ -24,7 +24,7 @@ async function logEvent(logBuffer, message, level = "info") {
         } catch (error) {
             console.error("Error saving logs to the database:", error.message);
 
-            // Optional: Push logs back to the buffer if saving fails
+            // Push logs back to the buffer if saving fails
             logBuffer.push(...logsToWrite);
         }
     }
