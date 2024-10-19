@@ -10,7 +10,7 @@ const { logEvent, getLogBuffer } = require("./processes/logManager");
 const router = express.Router();
 
 // Handle banking transaction with lock management
-router.post("/transaction", (req, res) => {
+router.post("/transaction", async (req, res) => {
     const { transactionId, amount, fromAccount, toAccount } = req.body;
     const transactionBuffer = req.app.locals.transactionBuffer; // Get the transaction buffer
     const logBuffer = req.app.locals.logBuffer; // Get the log buffer
@@ -19,10 +19,12 @@ router.post("/transaction", (req, res) => {
     logEvent(logBuffer, `Transaction ${transactionId} started`, "info");
 
     // Try to acquire locks for both accounts
-    if (
-        !acquireLock(fromAccount, transactionId) ||
-        !acquireLock(toAccount, transactionId)
-    ) {
+    const fromAccountLockAcquired = await acquireLock(
+        fromAccount,
+        transactionId
+    );
+    const toAccountLockAcquired = await acquireLock(toAccount, transactionId);
+    if (!fromAccountLockAcquired || !toAccountLockAcquired) {
         logEvent(
             logBuffer,
             `Transaction ${transactionId} failed to acquire locks`,
@@ -35,7 +37,11 @@ router.post("/transaction", (req, res) => {
     }
 
     // Log successful lock acquisition
-    logEvent(logBuffer, `Transaction ${transactionId} acquired locks for ${fromAccount} and ${toAccount}`, 'info');
+    logEvent(
+        logBuffer,
+        `Transaction ${transactionId} acquired locks for ${fromAccount} and ${toAccount}`,
+        "info"
+    );
 
     // Create a worker to handle the transaction
     const worker = new Worker("./server/processes/transactionWorker.js", {
@@ -51,7 +57,11 @@ router.post("/transaction", (req, res) => {
 
     worker.on("message", (message) => {
         // Log transaction completion
-        logEvent(logBuffer, `Transaction ${message.transactionId} completed`, 'info');
+        logEvent(
+            logBuffer,
+            `Transaction ${message.transactionId} completed`,
+            "info"
+        );
 
         // Release locks after the transaction is completed
         releaseLock(fromAccount, transactionId);
@@ -65,8 +75,12 @@ router.post("/transaction", (req, res) => {
 
     worker.on("error", (err) => {
         // Log transaction failure
-        logEvent(logBuffer, `Transaction ${transactionId} failed with error: ${err.message}`, 'error');
-        
+        logEvent(
+            logBuffer,
+            `Transaction ${transactionId} failed with error: ${err.message}`,
+            "error"
+        );
+
         // Release locks in case of error
         releaseLock(fromAccount, transactionId);
         releaseLock(toAccount, transactionId);

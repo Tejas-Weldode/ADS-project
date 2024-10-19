@@ -2,7 +2,12 @@
 const locks = new Map();
 const lockTable = []; // Array to store lock information
 
-function acquireLock(accountId, transactionId) {
+async function acquireLock(
+    accountId,
+    transactionId,
+    maxRetries = 3,
+    retryDelay = 1000
+) {
     const requestedAt = new Date();
 
     // Record the lock request
@@ -15,27 +20,32 @@ function acquireLock(accountId, transactionId) {
         releasedAt: null,
     });
 
-    // Check if the account is already locked
-    if (locks.has(accountId)) {
-        return false; // Lock is already held by another transaction
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        // Check if the account is already locked
+        if (!locks.has(accountId)) {
+            const acquiredAt = new Date();
+            locks.set(accountId, true); // Acquire the lock
+
+            // Update the lock table when the lock is acquired
+            const lockRecord = lockTable.find(
+                (entry) =>
+                    entry.transactionId === transactionId &&
+                    entry.accountId === accountId &&
+                    entry.lockStatus === "requested"
+            );
+            if (lockRecord) {
+                lockRecord.lockStatus = "locked";
+                lockRecord.acquiredAt = acquiredAt;
+            }
+
+            return true; // Lock successfully acquired
+        }
+
+        // If the lock is not acquired, wait for the specified retryDelay before the next attempt
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
 
-    const acquiredAt = new Date();
-    locks.set(accountId, true); // Acquire the lock
-
-    // Update the lock table when the lock is acquired
-    const lockRecord = lockTable.find(
-        (entry) =>
-            entry.transactionId === transactionId &&
-            entry.accountId === accountId &&
-            entry.lockStatus === "requested"
-    );
-    if (lockRecord) {
-        lockRecord.lockStatus = "locked";
-        lockRecord.acquiredAt = acquiredAt;
-    }
-
-    return true;
+    return false; // Failed to acquire lock after retries
 }
 
 function releaseLock(accountId, transactionId) {

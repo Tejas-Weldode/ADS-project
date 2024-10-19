@@ -5,7 +5,6 @@ const { logEvent } = require("./logManager"); // Import logEvent
 const run = () => {
     try {
         const transactionBuffer = workerData.transactionBuffer; // Get buffer from worker data
-        const logBuffer = req.app.locals.logBuffer; // Get the log buffer
 
         // Push the transaction to the buffer
         transactionBuffer.push({
