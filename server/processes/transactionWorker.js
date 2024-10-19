@@ -23,7 +23,6 @@ const run = () => {
                 status: "completed",
                 transactionId: workerData.transactionId,
             });
-            console.log(transactionBuffer);
         }, 5000);
     } catch (error) {
         parentPort.postMessage({ status: "error", message: error.message });

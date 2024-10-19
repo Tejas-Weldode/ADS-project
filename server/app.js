@@ -2,12 +2,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const routes = require('./routes');
-const transactionBuffer = []; // In-memory buffer for transactions
 const { writeTransactions } = require('./processes/databaseWriter'); // Import database writer
 
 const app = express();
 app.use(express.json());
-app.locals.transactionBuffer = transactionBuffer; // Store buffer in app locals
+
+// Create in-memory buffers for transactions and logs
+const transactionBuffer = [];
+const logBuffer = [];
+
+// Set buffers as app locals so they can be accessed in other files
+app.locals.transactionBuffer = transactionBuffer;
+app.locals.logBuffer = logBuffer;
 
 // MongoDB connection
 mongoose
