@@ -1,4 +1,6 @@
 // server/processes/lockManager.js
+const { Lock } = require("../../models/Lock");
+
 const locks = new Map();
 const lockTable = []; // Array to store lock information
 
@@ -38,6 +40,7 @@ async function acquireLock(
                 lockRecord.acquiredAt = acquiredAt;
             }
 
+            saveLockTable();
             return true; // Lock successfully acquired
         }
 
@@ -45,10 +48,11 @@ async function acquireLock(
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
 
+    await saveLockTable();
     return false; // Failed to acquire lock after retries
 }
 
-function releaseLock(accountId, transactionId) {
+async function releaseLock(accountId, transactionId) {
     const releasedAt = new Date();
 
     // Remove the lock from the active locks
@@ -65,10 +69,26 @@ function releaseLock(accountId, transactionId) {
         lockRecord.lockStatus = "released";
         lockRecord.releasedAt = releasedAt;
     }
+
+    await saveLockTable();
 }
 
 function getLockTable() {
     return lockTable;
+}
+
+// Save the lock table to the database
+async function saveLockTable() {
+    try {
+        if (lockTable.length > 3) {
+            await Lock.insertMany(lockTable);
+            console.log(
+                `Successfully saved ${lockTable.length} lock entries to the database.`
+            );
+        }
+    } catch (error) {
+        console.error("Error saving locks to the database:", error.message);
+    }
 }
 
 module.exports = { acquireLock, releaseLock, getLockTable };
