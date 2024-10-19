@@ -12,7 +12,7 @@ async function logEvent(logBuffer, message, level = "info") {
 
     // Log Writer Process
     if (logBuffer.length > 10) {
-        console.log("...trying to write logs")
+        console.log("...trying to write logs");
         // Take all logs out of the buffer
         const logsToWrite = logBuffer.splice(0, logBuffer.length);
         try {

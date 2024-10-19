@@ -1,8 +1,8 @@
 // server/processes/lockManager.js
 const { Lock } = require("../../models/Lock");
+const { lockTable } = require("../shared/lockTable");
 
 const locks = new Map();
-const lockTable = []; // Array to store lock information
 
 async function acquireLock(
     accountId,
