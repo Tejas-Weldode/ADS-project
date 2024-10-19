@@ -3,8 +3,14 @@ const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
     transactionId: { type: String, required: true },
-    data: { type: Object, required: true },
-    status: { type: String, default: 'pending' },
+    data: {
+        amount: { type: Number, required: true },
+        fromAccount: { type: String, required: true },
+        toAccount: { type: String, required: true }
+    },
+    status: { type: String, default: 'processing' }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Transaction', transactionSchema);
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+module.exports = Transaction;
