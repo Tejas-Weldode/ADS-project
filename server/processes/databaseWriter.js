@@ -4,7 +4,7 @@ const Transaction = require("../../models/Transaction");
 async function writeTransactions(transactionBuffer) {
     console.log("transactionBuffer", transactionBuffer);
     // Check if there are transactions to write
-    if (transactionBuffer.length > 1) {
+    if (transactionBuffer.length > 3) {
         console.log("...trying");
         // Remove transactions from the buffer to write
         const transactionsToWrite = transactionBuffer.splice(

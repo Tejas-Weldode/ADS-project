@@ -1,6 +1,7 @@
 // server/processes/logManager.js
+const { Log } = require("../../models/Log");
 
-function logEvent(logBuffer, message, level = "info") {
+async function logEvent(logBuffer, message, level = "info") {
     const logEntry = {
         timestamp: new Date(),
         message,
@@ -9,9 +10,23 @@ function logEvent(logBuffer, message, level = "info") {
 
     logBuffer.push(logEntry);
 
-    // Optional: Limit log buffer size (e.g., 1000 entries) to prevent overflow
-    if (logBuffer.length > 1000) {
-        logBuffer.shift(); // Remove the oldest entry if the buffer is full
+    // Log Writer Process
+    if (logBuffer.length > 10) {
+        console.log("...trying to write logs")
+        // Take all logs out of the buffer
+        const logsToWrite = logBuffer.splice(0, logBuffer.length);
+        try {
+            // Insert the logs into the database
+            await Log.insertMany(logsToWrite);
+            console.log(
+                `Successfully saved ${logsToWrite.length} logs to the database.`
+            );
+        } catch (error) {
+            console.error("Error saving logs to the database:", error.message);
+
+            // Optional: Push logs back to the buffer if saving fails
+            logBuffer.push(...logsToWrite);
+        }
     }
 }
 

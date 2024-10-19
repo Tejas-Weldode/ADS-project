@@ -19,7 +19,7 @@ router.post("/transaction", async (req, res) => {
     const logBuffer = req.app.locals.logBuffer; // Get the log buffer
 
     // Log transaction start
-    logEvent(logBuffer, `Transaction ${transactionId} started`, "info");
+    await logEvent(logBuffer, `Transaction ${transactionId} started`, "info");
 
     // Try to acquire locks for both accounts
     const fromAccountLockAcquired = await acquireLock(
@@ -32,7 +32,7 @@ router.post("/transaction", async (req, res) => {
         releaseLock(fromAccount, transactionId);
         releaseLock(toAccount, transactionId);
         // log
-        logEvent(
+        await logEvent(
             logBuffer,
             `Transaction ${transactionId} failed to acquire locks`,
             "warning"
@@ -44,7 +44,7 @@ router.post("/transaction", async (req, res) => {
     }
 
     // Log successful lock acquisition
-    logEvent(
+    await logEvent(
         logBuffer,
         `Transaction ${transactionId} acquired locks for ${fromAccount} and ${toAccount}`,
         "info"
@@ -64,7 +64,7 @@ router.post("/transaction", async (req, res) => {
 
     worker.on("message", async (message) => {
         // Log transaction completion
-        logEvent(
+        await logEvent(
             logBuffer,
             `Transaction ${message.transactionId} completed`,
             "info"
@@ -87,9 +87,9 @@ router.post("/transaction", async (req, res) => {
         });
     });
 
-    worker.on("error", (err) => {
+    worker.on("error", async (err) => {
         // Log transaction failure
-        logEvent(
+        await logEvent(
             logBuffer,
             `Transaction ${transactionId} failed with error: ${err.message}`,
             "error"
