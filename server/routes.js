@@ -7,6 +7,9 @@ const {
     getLockTable,
 } = require("./processes/lockManager");
 const { logEvent, getLogBuffer } = require("./processes/logManager");
+const { attendance } = require("./shared/attendance");
+const { transactionBufferArray } = require("./shared/transactionBufferArray");
+const { writeTransactions } = require("./processes/databaseWriter");
 const router = express.Router();
 
 // Handle banking transaction with lock management
@@ -25,6 +28,10 @@ router.post("/transaction", async (req, res) => {
     );
     const toAccountLockAcquired = await acquireLock(toAccount, transactionId);
     if (!fromAccountLockAcquired || !toAccountLockAcquired) {
+        // Release locks if acquired any
+        releaseLock(fromAccount, transactionId);
+        releaseLock(toAccount, transactionId);
+        // log
         logEvent(
             logBuffer,
             `Transaction ${transactionId} failed to acquire locks`,
@@ -55,7 +62,7 @@ router.post("/transaction", async (req, res) => {
         },
     });
 
-    worker.on("message", (message) => {
+    worker.on("message", async (message) => {
         // Log transaction completion
         logEvent(
             logBuffer,
@@ -66,6 +73,13 @@ router.post("/transaction", async (req, res) => {
         // Release locks after the transaction is completed
         releaseLock(fromAccount, transactionId);
         releaseLock(toAccount, transactionId);
+
+        //
+        attendance.push(message.transactionId);
+        console.log(attendance);
+        transactionBufferArray.push(message.transaction);
+        await writeTransactions(transactionBufferArray);
+        //
 
         res.status(200).json({
             message: `Transaction ${message.transactionId} is ${message.status}`,
